@@ -8,84 +8,52 @@ body {
     height: 100vh;
     margin: 0;
     text-align: center; /* Center text for block elements */
-    overflow: hidden; /* Forhindre scrollbars hvis kuben går utenfor skjermen under rotasjon */
+    overflow: hidden; /* Forhindre scrollbars */
 }
 
 .container {
     display: flex;
     flex-direction: column;
     align-items: center;
-    position: relative; /* For å tillate z-index stabling */
-    z-index: 1; /* Sørg for at tekstinnholdet er over kuben */
-    /* Container will now primarily be for the clock,
-       as h1 will be absolutely positioned. */
-    /* Ensure it still allows clock to be centered by body's flex properties. */
-    display: flex; /* Added to center clock if h1 is removed from flow */
-    flex-direction: column; /* Added */
-    justify-content: center; /* Added */
-    align-items: center; /* Added */
-    width: 100%; /* Allow it to span width for h1 positioning if needed */
-    height: 100%; /* Allow it to span height for clock centering */
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
 }
 
 h1 { /* "jarle" text */
-    font-size: 3.5rem; /* Reduced font size */
+    font-size: 3.5rem;
     font-weight: 300;
-    color: #f0f0f0; /* Ensure color is maintained */
+    color: #f0f0f0;
     position: absolute;
-    bottom: 30px; /* Position at the bottom */
+    bottom: 30px;
     left: 50%;
     transform: translateX(-50%);
-    margin: 0; /* Reset margin */
-    z-index: 2; /* Ensure it's above other elements if needed, like .container */
+    margin: 0;
+    z-index: 2;
 }
 
 #clock { /* Clock text */
     font-family: 'Montserrat', sans-serif;
     font-weight: 700;
     font-size: 3rem;
-    color: #f0f0f0; /* Ensure color is maintained */
-    /* Will be centered by .container's parent (body) and .container's own flex settings */
-    /* No absolute positioning needed if .container is effectively the clock's centered box */
+    color: #f0f0f0; /* Startfarge, vil bli endret av JS */
+    /* Sentrert av .container */
 }
 
-.cube-container {
+/* CSS for .cube-container, .cube, .face er fjernet */
+
+/* Legg til stil for Three.js canvas hvis det trengs senere,
+   f.eks. for å sikre at den er bak teksten */
+#three-canvas {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 200px; /* Kubens bredde */
-    height: 200px; /* Kubens høyde */
-    perspective: 1000px; /* Nødvendig for 3D-effekt */
-    transform-style: preserve-3d;
-    z-index: 0; /* Plasser kuben bak annet innhold */
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 0; /* Bak .container */
 }
-
-.cube {
-    width: 100%;
-    height: 100%;
-    position: relative;
-    transform-style: preserve-3d;
-    transform: translateZ(-100px); /* Sentrer kuben i containeren */
-}
-
-.face {
-    position: absolute;
-    width: 200px;
-    height: 200px;
-    border: 1px solid #ccc; /* Kantlinje for å se flatene */
-    background-color: rgba(100, 100, 200, 0.7); /* Startfarge, vil bli endret av JS */
-    opacity: 0.7; /* Gjør kuben litt gjennomsiktig */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 20px;
-    color: white;
-}
-
-/* Posisjonering av hver flate */
-.front  { transform: rotateY(  0deg) translateZ(100px); }
-.back   { transform: rotateY(180deg) translateZ(100px); }
-.right  { transform: rotateY( 90deg) translateZ(100px); }
-.left   { transform: rotateY(-90deg) translateZ(100px); }
-.top    { transform: rotateX( 90deg) translateZ(100px); }
-.bottom { transform: rotateX(-90deg) translateZ(100px); }
