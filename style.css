@@ -8,22 +8,48 @@ body {
     height: 100vh;
     margin: 0;
     text-align: center; /* Center text for block elements */
+    overflow: hidden; /* Hide scrollbars that might appear due to canvas */
+}
+
+#polyhedronCanvas {
+    position: fixed; /* Changed from absolute to fixed to ensure it stays in viewport */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1; /* Place canvas behind other content */
 }
 
 .container {
     display: flex;
     flex-direction: column;
     align-items: center;
+    /* Removed justify-content: center from here to allow specific positioning */
+    position: relative; /* To position children absolutely relative to container if needed */
+    width: 100%;
+    height: 100%;
+    /* Ensure container itself doesn't block canvas interaction if it overlays */
+    pointer-events: none;
 }
 
-h1 {
-    font-size: 5rem; /* Stor tekststørrelse */
+h1 { /* This is the "jarle" text */
+    font-size: 4rem; /* Slightly reduced from 5rem */
     font-weight: 300; /* Lett fontvekt */
-    margin-bottom: 10px; /* Add some space below h1 */
+    position: absolute; /* Position it absolutely within .container */
+    bottom: 20px; /* At the bottom */
+    left: 50%;
+    transform: translateX(-50%); /* Center it horizontally */
+    margin-bottom: 0; /* Remove default margin */
+    pointer-events: auto; /* Allow text interaction if any */
 }
 
 #clock {
     font-family: 'Montserrat', sans-serif;
     font-weight: 700; /* Bold */
     font-size: 3rem; /* Adjust size as needed */
+    position: absolute; /* Position it absolutely within .container */
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%); /* Center it both horizontally and vertically */
+    pointer-events: auto; /* Allow text interaction if any */
 }
