@@ -1,0 +1,29 @@
+body {
+    background-color: #222; /* Mørk bakgrunnsfarge */
+    color: #f0f0f0; /* Lys tekstfarge */
+    font-family: 'Lato', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    text-align: center; /* Center text for block elements */
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+h1 {
+    font-size: 5rem; /* Stor tekststørrelse */
+    font-weight: 300; /* Lett fontvekt */
+    margin-bottom: 10px; /* Add some space below h1 */
+}
+
+#clock {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 700; /* Bold */
+    font-size: 3rem; /* Adjust size as needed */
+}
