@@ -1,62 +1,16 @@
-const cubeElement = document.querySelector('.cube');
-const cubeContainer = document.querySelector('.cube-container'); // For movement
+// Three.js variabler
+let scene, camera, renderer;
+let gridLines = [];
+const lineSegments = 15; // Økt antall segmenter for å fylle mer av skjermen i dybden
+const segmentDepth = 40; // Litt kortere segmenter for tettere effekt
+const initialWidth = 2; // Startbredde på trekanten (antall celler)
+const widthIncrement = 1; // Hvor mye bredden øker per segment dybde (antall celler)
+const lineSpacing = 4; // Mindre avstand mellom linjene for et tettere rutenett
+const cameraSpeed = 0.08; // Justert kameraets hastighet
 
-let currentFaces = [];
-let currentColor = { r: 100, g: 100, b: 200 };
-let targetColor = getRandomColor();
-let lastShapeChangeMinute = new Date().getMinutes();
-let lastColorChangeMinute = new Date().getMinutes(); // Corrected variable name
+// Kube-relaterte variabler og funksjoner er fjernet
 
-const s = 100; // size parameter
-
-const polyhedra = {
-    cube: {
-        faceTransforms: [
-            `rotateY(0deg) translateZ(${s}px)`, `rotateY(180deg) translateZ(${s}px)`,
-            `rotateY(90deg) translateZ(${s}px)`, `rotateY(-90deg) translateZ(${s}px)`,
-            `rotateX(90deg) translateZ(${s}px)`, `rotateX(-90deg) translateZ(${s}px)`
-        ],
-        numSides: 6
-    },
-    pseudoTetrahedron: {
-        faceTransforms: [
-            `translateZ(${s * 0.5}px) rotate3d(1, -1, 0, 55deg) rotate3d(0,0,1,45deg) `,
-            `translateZ(${s * 0.5}px) rotate3d(1, 1, 0, 55deg) rotate3d(0,0,1,-45deg)`,
-            `translateZ(-${s * 0.2}px) rotate3d(1,0,0, 125deg) translateY(${s*0.3}px)`,
-            `rotateX(-70deg) translateZ(${s * 0.3}px) translateY(${s*0.5}px) scale(0.9) rotateZ(180deg)`
-        ],
-        numSides: 4
-    },
-    diamond: {
-        faceTransforms: [
-            `translateY(-${s*0.35}px) translateZ(${s*0.35}px) rotateX(45deg)`,
-            `translateX(${s*0.35}px) translateY(-${s*0.35}px) rotateY(-45deg) rotateX(45deg)`,
-            `translateY(-${s*0.35}px) translateZ(-${s*0.35}px) rotateX(-45deg) rotateY(180deg)`,
-            `translateX(-${s*0.35}px) translateY(-${s*0.35}px) rotateY(45deg) rotateX(45deg)`,
-            `translateY(${s*0.35}px) translateZ(${s*0.35}px) rotateX(-45deg)`,
-            `translateX(${s*0.35}px) translateY(${s*0.35}px) rotateY(-45deg) rotateX(-45deg)`,
-            `translateY(${s*0.35}px) translateZ(-${s*0.35}px) rotateX(45deg) rotateY(180deg)`,
-            `translateX(-${s*0.35}px) translateY(${s*0.35}px) rotateY(45deg) rotateX(-45deg)`,
-        ].map(transform => `${transform} scale(0.7)`),
-        numSides: 8
-    }
-};
-
-const polyhedronKeys = Object.keys(polyhedra);
-let currentPolyhedronIndex = 0;
-let targetPolyhedronIndex = 0;
-
-let transitioningShape = false;
-let transitionProgress = 0;
-
-// --- Movement Variables ---
-let containerWidth = 200; // Default from CSS, matches .cube-container width/height
-let containerHeight = 200;
-let position = { x: 0, y: 0 };
-let velocity = { dx: 0, dy: 0 };
-const MOVEMENT_SPEED = 1.5; // Adjust speed as needed
-
-function getRandomColor() {
+function getRandomColor() { // Beholder denne hvis den brukes andre steder, ellers kan den fjernes hvis landskapet ikke trenger den.
     return {
         r: Math.floor(Math.random() * 256),
         g: Math.floor(Math.random() * 256),
@@ -64,199 +18,184 @@ function getRandomColor() {
     };
 }
 
-function interpolateColor(color1, color2, factor) {
+function interpolateColor(color1, color2, factor) { // Beholder denne for klokken, eller hvis landskapet trenger den.
     const r = Math.round(color1.r + (color2.r - color1.r) * factor);
     const g = Math.round(color1.g + (color2.g - color1.g) * factor);
     const b = Math.round(color1.b + (color2.b - color1.b) * factor);
     return `rgb(${r}, ${g}, ${b})`;
 }
 
-function generatePolyhedronFaces(polyhedronKey, opacity = 0.7) {
-    const newFaces = [];
-    const polyhedron = polyhedra[polyhedronKey];
-    if (!polyhedron || !polyhedron.faceTransforms) {
-        console.error("Polyhedron not found or misconfigured:", polyhedronKey);
-        return [];
-    }
-    const baseColor = interpolateColor(currentColor, targetColor, (new Date().getSeconds() + new Date().getMilliseconds()/1000)/60);
+let clockColor = { r: 100, g: 100, b: 200 }; // Startfarge for klokken
+let targetClockColor = getRandomColor();
+let lastColorChangeMinuteForClock = new Date().getMinutes();
 
-    polyhedron.faceTransforms.forEach(transform => {
-        const face = document.createElement('div');
-        face.classList.add('face');
-        face.style.transform = transform;
-        face.style.backgroundColor = baseColor;
-        face.style.opacity = opacity.toFixed(2);
-        cubeElement.appendChild(face);
-        newFaces.push(face);
-    });
-    return newFaces;
-}
-
-function manageShapeChange() {
-    const now = new Date();
-    const currentMinute = now.getMinutes();
-
-    if (currentMinute !== lastShapeChangeMinute && !transitioningShape) {
-        lastShapeChangeMinute = currentMinute;
-        transitioningShape = true;
-        transitionProgress = 0;
-        let newPolyhedronIndex;
-        if (polyhedronKeys.length <= 1) {
-            newPolyhedronIndex = 0;
-        } else {
-            do {
-                newPolyhedronIndex = Math.floor(Math.random() * polyhedronKeys.length);
-            } while (newPolyhedronIndex === currentPolyhedronIndex);
-        }
-        targetPolyhedronIndex = newPolyhedronIndex;
-    }
-
-    if (transitioningShape) {
-        const secondsIntoMinute = now.getSeconds() + (now.getMilliseconds() / 1000);
-        transitionProgress = secondsIntoMinute / 60;
-        const FADE_DURATION_RATIO = 0.1; // 10% of minute to fade out, 10% to fade in
-
-        if (transitionProgress < FADE_DURATION_RATIO && currentFaces.length > 0) {
-            const fadeOutFactor = 1 - (transitionProgress / FADE_DURATION_RATIO);
-            currentFaces.forEach(face => face.style.opacity = Math.max(0, fadeOutFactor * 0.7).toFixed(2));
-        } else if (transitionProgress >= FADE_DURATION_RATIO) {
-            if (currentPolyhedronIndex !== targetPolyhedronIndex || (currentFaces.length === 0 && cubeElement.children.length === 0)) {
-                currentFaces.forEach(face => face.remove());
-                currentFaces = [];
-                currentPolyhedronIndex = targetPolyhedronIndex;
-                const newPolyhedronKey = polyhedronKeys[currentPolyhedronIndex];
-                currentFaces = generatePolyhedronFaces(newPolyhedronKey, 0); // Start transparent
-            }
-            const fadeInProgress = Math.min(1, (transitionProgress - FADE_DURATION_RATIO) / FADE_DURATION_RATIO);
-            if (fadeInProgress >= 0) {
-                currentFaces.forEach(face => face.style.opacity = Math.min(0.7, fadeInProgress * 0.7).toFixed(2));
-            }
-            if (transitionProgress >= FADE_DURATION_RATIO * 2 || fadeInProgress >= 1) {
-                transitioningShape = false;
-                currentFaces.forEach(face => face.style.opacity = 0.7);
-            }
-        }
-    } else if (currentFaces.length === 0 && cubeElement.children.length === 0) {
-        const initialKey = polyhedronKeys[currentPolyhedronIndex];
-        currentFaces = generatePolyhedronFaces(initialKey, 0.7);
-    }
-}
-
-function updateClockAndCube() {
+function updateClock() {
     const now = new Date();
     const hours = String(now.getHours()).padStart(2, '0');
     const minutes = String(now.getMinutes()).padStart(2, '0');
     const seconds = String(now.getSeconds()).padStart(2, '0');
     const timeString = `${hours}:${minutes}:${seconds}`;
     const clockElement = document.getElementById('clock');
-    if (clockElement) clockElement.textContent = timeString;
 
-    manageShapeChange();
+    if (clockElement) {
+        clockElement.textContent = timeString;
 
-    if (now.getMinutes() !== lastColorChangeMinute) { // Corrected variable
-        currentColor = { ...targetColor };
-        targetColor = getRandomColor();
-        lastColorChangeMinute = now.getMinutes(); // Corrected variable
-    }
-    const secondsIntoColorMinute = now.getSeconds() + (now.getMilliseconds() / 1000);
-    const colorFactor = secondsIntoColorMinute / 60;
-    const interpolatedRgbString = interpolateColor(currentColor, targetColor, colorFactor);
-
-    currentFaces.forEach(face => { // Corrected array
-        face.style.backgroundColor = interpolatedRgbString;
-        if (!transitioningShape && face.style.opacity !== '0.7') {
-             // Let manageShapeChange finalize opacity to avoid conflicts
+        // Fargeendringslogikk kun for klokken
+        if (now.getMinutes() !== lastColorChangeMinuteForClock) {
+            clockColor = { ...targetClockColor };
+            targetClockColor = getRandomColor();
+            lastColorChangeMinuteForClock = now.getMinutes();
         }
-    });
-}
-
-// --- Movement Initialization and Update ---
-function initializeMovement() {
-    if (!cubeContainer) return;
-    containerWidth = cubeContainer.offsetWidth || 200;
-    containerHeight = cubeContainer.offsetHeight || 200;
-
-    position.x = window.innerWidth / 2 - containerWidth / 2;
-    position.y = window.innerHeight / 2 - containerHeight / 2;
-    cubeContainer.style.left = `${position.x}px`;
-    cubeContainer.style.top = `${position.y}px`;
-
-    const angle = Math.random() * 2 * Math.PI;
-    velocity.dx = Math.cos(angle);
-    velocity.dy = Math.sin(angle);
-}
-
-function getRandomDirection() {
-    const angle = Math.random() * 2 * Math.PI;
-    velocity.dx = Math.cos(angle);
-    velocity.dy = Math.sin(angle);
-}
-
-function updateMovement() {
-    if (!cubeContainer) return;
-
-    position.x += velocity.dx * MOVEMENT_SPEED;
-    position.y += velocity.dy * MOVEMENT_SPEED;
-
-    const screenWidth = window.innerWidth;
-    const screenHeight = window.innerHeight;
-
-    let collision = false;
-    if (position.x < 0) {
-        position.x = 0;
-        collision = true;
-    } else if (position.x + containerWidth > screenWidth) {
-        position.x = screenWidth - containerWidth;
-        collision = true;
+        const secondsIntoColorMinute = now.getSeconds() + (now.getMilliseconds() / 1000);
+        const colorFactor = secondsIntoColorMinute / 60;
+        const interpolatedRgbString = interpolateColor(clockColor, targetClockColor, colorFactor);
+        clockElement.style.color = interpolatedRgbString; // Sett fargen på klokken
     }
-    if (position.y < 0) {
-        position.y = 0;
-        collision = true;
-    } else if (position.y + containerHeight > screenHeight) {
-        position.y = screenHeight - containerHeight;
-        collision = true;
+}
+
+// --- Three.js Initialisering ---
+function initThreeJS() {
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+    const canvas = document.getElementById('three-canvas');
+    renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0x222222); // Samme som body background
+
+    camera.position.z = 10; // Justert startposisjon for kameraet for bedre oversikt
+    camera.position.y = 3; // Senket kameraet litt for en mer "inne i tunnelen" følelse
+    camera.lookAt(0, 0, -segmentDepth); // Sikt litt nedover og fremover
+
+    // Lag det initielle landskapet
+    for (let i = 0; i < lineSegments; i++) {
+        createGridSegment(i * -segmentDepth);
     }
 
-    if (collision) {
-        getRandomDirection();
-    }
-
-    cubeContainer.style.left = `${position.x}px`;
-    cubeContainer.style.top = `${position.y}px`;
+    window.addEventListener('resize', onWindowResize, false);
 }
 
-window.addEventListener('resize', () => {
-    if (!cubeContainer) return;
-    containerWidth = cubeContainer.offsetWidth || 200;
-    containerHeight = cubeContainer.offsetHeight || 200;
-    position.x = Math.max(0, Math.min(position.x, window.innerWidth - containerWidth));
-    position.y = Math.max(0, Math.min(position.y, window.innerHeight - containerHeight));
-    // Update style if clamping changed position, or if re-centering.
-    // initializeMovement(); // Option: re-center on resize
-});
+function createGridSegment(zOffset) {
+    const material = new THREE.LineBasicMaterial({ color: 0x888888 });
+    const segmentGroup = new THREE.Group();
+    segmentGroup.position.z = zOffset;
+
+    // Beregn dybdeindeks basert på hvor langt unna kameraets start (0) dette segmentet er.
+    // zOffset er negativ, så vi tar absoluttverdien.
+    const depthIndexForWidth = Math.floor(Math.abs(zOffset / segmentDepth));
+
+    // Øk bredden basert på dybdeindeksen.
+    // currentSegmentWidth er antall "celler" eller mellomrom mellom linjene.
+    // Antall langsgående linjer vil være currentSegmentWidth + 1.
+    const currentSegmentWidthCount = initialWidth + depthIndexForWidth * widthIncrement;
+    const totalWidth = currentSegmentWidthCount * lineSpacing;
+    const halfTotalWidth = totalWidth / 2;
+
+    // Langsgående linjer (langs Z-aksen)
+    for (let i = 0; i <= currentSegmentWidthCount; i++) {
+        const x = (i * lineSpacing) - halfTotalWidth;
+        const points = [];
+        points.push(new THREE.Vector3(x, 0, 0)); // Starten av segmentet
+        points.push(new THREE.Vector3(x, 0, -segmentDepth)); // Slutten av segmentet
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        const line = new THREE.Line(geometry, material);
+        segmentGroup.add(line);
+    }
+
+    // Tverrgående linjer (langs X-aksen)
+    // Vi trenger en tverrgående linje ved starten av dette segmentet (z=0 i segmentets lokale koordinater)
+    // og en ved slutten (z=-segmentDepth i segmentets lokale koordinater).
+    // Bredden på den tverrgående linjen ved z=-segmentDepth må matche bredden
+    // til NESTE segment ved dens start (z=0).
+
+    // Linje ved starten av segmentet (z=0 lokalt)
+    const pointsStart = [];
+    pointsStart.push(new THREE.Vector3(-halfTotalWidth, 0, 0));
+    pointsStart.push(new THREE.Vector3(halfTotalWidth, 0, 0));
+    const geometryStart = new THREE.BufferGeometry().setFromPoints(pointsStart);
+    const lineStart = new THREE.Line(geometryStart, material);
+    segmentGroup.add(lineStart);
+
+    // For linjen ved slutten av segmentet (z=-segmentDepth lokalt):
+    // Vi trenger bredden til segmentet som VILLE vært ved zOffset - segmentDepth.
+    const nextDepthIndexForWidth = depthIndexForWidth + 1;
+    const nextSegmentWidthCount = initialWidth + nextDepthIndexForWidth * widthIncrement;
+    const nextTotalWidth = nextSegmentWidthCount * lineSpacing;
+    const nextHalfTotalWidth = nextTotalWidth / 2;
+
+    const pointsEnd = [];
+    pointsEnd.push(new THREE.Vector3(-nextHalfTotalWidth, 0, -segmentDepth));
+    pointsEnd.push(new THREE.Vector3(nextHalfTotalWidth, 0, -segmentDepth));
+    const geometryEnd = new THREE.BufferGeometry().setFromPoints(pointsEnd);
+    const lineEnd = new THREE.Line(geometryEnd, material);
+    segmentGroup.add(lineEnd);
+
+    scene.add(segmentGroup);
+    gridLines.push(segmentGroup);
+}
+
+
+function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+}
 
 // --- Main Animation Loop ---
-let rotationState = { x: 0, y: 0 };
+function animate() {
+    requestAnimationFrame(animate);
 
-function animate() { // Renamed from animateCube
-    const now = new Date();
-    const totalSecondsSinceEpoch = now.getTime() / 1000;
+    // Landskap bevegelse
+    // cameraSpeed er nå definert globalt
+    camera.position.z += cameraSpeed;
 
-    rotationState.y = (totalSecondsSinceEpoch * 36) % 360;
-    rotationState.x = (totalSecondsSinceEpoch * 18) % 360;
-    if (cubeElement) {
-        cubeElement.style.transform = `translateZ(-${s}px) rotateY(${rotationState.y}deg) rotateX(${rotationState.x}deg)`;
+    // Sikter kameraet kontinuerlig litt fremover og nedover for dynamisk perspektiv
+    // Dette kan justeres eller fjernes hvis det gir uønsket effekt.
+    // Vi sikter mot et punkt som er litt foran og under kameraets nåværende relative posisjon.
+    // camera.lookAt(camera.position.x, camera.position.y -1, camera.position.z + segmentDepth);
+    // For en jevnere "inn i tunnelen" effekt, kan vi sikte mot et fast punkt i horisonten
+    // eller et punkt som beveger seg med landskapet.
+    // For nå, la oss beholde den initielle lookAt og se hvordan det føles med bare Z-bevegelse.
+
+    gridLines.forEach(segment => {
+        // Flytt segmentet tilbake relativt til kameraets nye posisjon for å skape illusjon
+        // Dette er ikke helt riktig for "uendelig" ennå.
+        // Bedre: Når et segment går bak kamera, flytt det langt frem.
+    });
+
+    // Sjekk om det første segmentet (lengst "bak" i arrayet, men visuelt nærmest å forsvinne)
+    // har passert kameraet.
+    if (gridLines.length > 0) {
+        const firstSegment = gridLines[0];
+        // firstSegment.position.z er den absolutte z-posisjonen til segmentet.
+        // camera.position.z er kameraets posisjon.
+        // Når (camera.position.z - firstSegment.position.z) > segmentDepth (omtrent),
+        // betyr det at kameraet har passert starten av dette segmentet.
+        // Eller enklere: når (firstSegment.position.z + segmentDepth) < camera.position.z
+
+        // Vi må vurdere segmentets posisjon i verdensrommet.
+        // Kameraet beveger seg mot positiv Z. Objekter er på negativ Z.
+        // Når kameraets Z er større enn (segmentets Z + dybden av segmentet),
+        // er segmentet helt bak kameraet.
+        if (camera.position.z > firstSegment.position.z + segmentDepth + camera.far/20 ) { // liten buffer
+            scene.remove(firstSegment); // Fjern fra scenen
+            gridLines.shift(); // Fjern fra arrayet
+
+            // Legg til et nytt segment "lengst fremme" (dvs. lengst unna kameraet i negativ Z)
+            const lastSegmentZ = gridLines.length > 0 ? gridLines[gridLines.length - 1].position.z : camera.position.z - segmentDepth;
+            createGridSegment(lastSegmentZ - segmentDepth);
+        }
     }
 
-    updateMovement();
-    requestAnimationFrame(animate);
+
+    renderer.render(scene, camera);
 }
 
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
-    initializeMovement();
-    updateClockAndCube(); // Initial call for clock and shape setup
-    requestAnimationFrame(animate);
+    initThreeJS();
+    updateClock(); // Initial call for clock setup
+    requestAnimationFrame(animate); // Start animasjonsløkken
 });
 
-setInterval(updateClockAndCube, 100); // Update clock/shape/color logic more frequently
+setInterval(updateClock, 100); // Oppdater klokken regelmessig
