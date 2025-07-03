@@ -17,10 +17,10 @@ body {
     align-items: center;
     position: relative;
     z-index: 1;
-    display: flex;
-    flex-direction: column;
+    /* display: flex; */ /* Duplikat, fjernet */
+    /* flex-direction: column; */ /* Duplikat, fjernet */
     justify-content: center;
-    align-items: center;
+    /* align-items: center; */ /* Duplikat, fjernet */
     width: 100%;
     height: 100%;
 }
