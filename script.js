@@ -147,7 +147,7 @@ function animate() {
 
     // Landskap bevegelse
     // cameraSpeed er nå definert globalt
-    camera.position.z += cameraSpeed;
+    camera.position.z -= cameraSpeed; // Endret retning
 
     // Sikter kameraet kontinuerlig litt fremover og nedover for dynamisk perspektiv
     // Dette kan justeres eller fjernes hvis det gir uønsket effekt.
@@ -163,25 +163,30 @@ function animate() {
         // Bedre: Når et segment går bak kamera, flytt det langt frem.
     });
 
-    // Sjekk om det første segmentet (lengst "bak" i arrayet, men visuelt nærmest å forsvinne)
-    // har passert kameraet.
+        // Sjekk om det første segmentet (det eldste, gridLines[0]) har passert kameraet
+        // gitt den nye bevegelsesretningen (kameraet beveger seg mot negativ Z).
     if (gridLines.length > 0) {
-        const firstSegment = gridLines[0];
-        // firstSegment.position.z er den absolutte z-posisjonen til segmentet.
-        // camera.position.z er kameraets posisjon.
-        // Når (camera.position.z - firstSegment.position.z) > segmentDepth (omtrent),
-        // betyr det at kameraet har passert starten av dette segmentet.
-        // Eller enklere: når (firstSegment.position.z + segmentDepth) < camera.position.z
+            const firstSegment = gridLines[0]; // Dette er det eldste segmentet, opprinnelig ved z=0.
+                                             // Det strekker seg fra firstSegment.position.z til firstSegment.position.z - segmentDepth.
 
-        // Vi må vurdere segmentets posisjon i verdensrommet.
-        // Kameraet beveger seg mot positiv Z. Objekter er på negativ Z.
-        // Når kameraets Z er større enn (segmentets Z + dybden av segmentet),
-        // er segmentet helt bak kameraet.
-        if (camera.position.z > firstSegment.position.z + segmentDepth + camera.far/20 ) { // liten buffer
+            // Kameraet beveger seg mot negativ Z. Dets posisjon camera.position.z blir mer negativ.
+            // Segmentet er "bak" kameraet (og ute av syne) når hele segmentet
+            // har en Z-verdi som er større enn kameraets posisjon + nærplan + buffer.
+            // Mer presist: når den "bakerste" kanten av segmentet (firstSegment.position.z - segmentDepth)
+            // er forbi kameraets posisjon justert for nærplanet (camera.position.z - camera.near).
+            // camera.position.z - camera.near er Z-verdien til nærplanet.
+            // Vi fjerner segmentet hvis (firstSegment.position.z - segmentDepth) > (camera.position.z - camera.near + buffer_for_segment_removal)
+            // Dette betyr at segmentets "laveste Z-punkt" er "høyere enn" kameraets "nærplan Z + buffer".
+            const segmentRearEdgeZ = firstSegment.position.z - segmentDepth;
+            const cameraEffectiveNearZ = camera.position.z - camera.near;
+            const removalBuffer = 5; // Liten buffer for å sikre at det er helt ute av syne
+
+            if (segmentRearEdgeZ > cameraEffectiveNearZ + removalBuffer) {
             scene.remove(firstSegment); // Fjern fra scenen
             gridLines.shift(); // Fjern fra arrayet
 
             // Legg til et nytt segment "lengst fremme" (dvs. lengst unna kameraet i negativ Z)
+                // Denne logikken forblir den samme, da nye segmenter alltid skal legges til i den "fjerne enden".
             const lastSegmentZ = gridLines.length > 0 ? gridLines[gridLines.length - 1].position.z : camera.position.z - segmentDepth;
             createGridSegment(lastSegmentZ - segmentDepth);
         }
