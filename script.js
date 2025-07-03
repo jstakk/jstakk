@@ -1,16 +1,18 @@
 // Three.js variabler
 let scene, camera, renderer;
-let gridLines = [];
-const lineSegments = 15; // Økt antall segmenter for å fylle mer av skjermen i dybden
-const segmentDepth = 40; // Litt kortere segmenter for tettere effekt
-const initialWidth = 2; // Startbredde på trekanten (antall celler)
-const widthIncrement = 1; // Hvor mye bredden øker per segment dybde (antall celler)
-const lineSpacing = 4; // Mindre avstand mellom linjene for et tettere rutenett
-const cameraSpeed = 0.08; // Justert kameraets hastighet
+let squareMeshes = []; // Array for å holde referanser til firkant-meshes
+const totalSquares = 60;
+const numCols = 10;
+const numRows = totalSquares / numCols; // Blir 6
+const squareSize = 0.8; // Størrelse på hver firkant
+const squareSpacing = 0.2; // Avstand mellom firkanter
+const gridColorHex = 0x444444; // Mørk grå for inaktive/bakgrunnsruter (litt lysere)
+const activeColorHex = 0xffffff; // Hvit for aktive ruter
+
 
 // Kube-relaterte variabler og funksjoner er fjernet
 
-function getRandomColor() { // Beholder denne hvis den brukes andre steder, ellers kan den fjernes hvis landskapet ikke trenger den.
+function getRandomColor() { // Beholder denne.
     return {
         r: Math.floor(Math.random() * 256),
         g: Math.floor(Math.random() * 256),
@@ -63,76 +65,44 @@ function initThreeJS() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setClearColor(0x222222); // Samme som body background
 
-    camera.position.z = 10; // Justert startposisjon for kameraet for bedre oversikt
-    camera.position.y = 3; // Senket kameraet litt for en mer "inne i tunnelen" følelse
-    camera.lookAt(0, 0, -segmentDepth); // Sikt litt nedover og fremover
+    camera.position.y = 0;
+    camera.lookAt(0, 0, 0);
 
-    // Lag det initielle landskapet
-    for (let i = 0; i < lineSegments; i++) {
-        createGridSegment(i * -segmentDepth);
+    const gridGroup = new THREE.Group();
+    const totalGridWidth = numCols * squareSize + (numCols - 1) * squareSpacing;
+    const totalGridHeight = numRows * squareSize + (numRows - 1) * squareSpacing;
+    const startX = -totalGridWidth / 2 + squareSize / 2;
+    const startY = totalGridHeight / 2 - squareSize / 2;
+
+    for (let i = 0; i < totalSquares; i++) {
+        const row = Math.floor(i / numCols);
+        const col = i % numCols;
+
+        const x = startX + col * (squareSize + squareSpacing);
+        const y = startY - row * (squareSize + squareSpacing);
+
+        const geometry = new THREE.PlaneGeometry(squareSize, squareSize);
+        const material = new THREE.MeshBasicMaterial({ color: gridColorHex });
+        const square = new THREE.Mesh(geometry, material);
+        square.position.set(x, y, 0);
+
+        gridGroup.add(square);
+        squareMeshes.push(square); // Lagre referanse
     }
+    scene.add(gridGroup);
+
+    // Juster kameraets Z-posisjon for å se hele rutenettet
+    // Dette er en enkel heuristikk, kan trenge finjustering
+    const fov = camera.fov * (Math.PI / 180);
+    const largerDimension = Math.max(totalGridWidth, totalGridHeight);
+    camera.position.z = (largerDimension / 2) / Math.tan(fov / 2) + 5; // +5 for litt padding
+
 
     window.addEventListener('resize', onWindowResize, false);
 }
 
-function createGridSegment(zOffset) {
-    const material = new THREE.LineBasicMaterial({ color: 0x888888 });
-    const segmentGroup = new THREE.Group();
-    segmentGroup.position.z = zOffset;
-
-    // Beregn dybdeindeks basert på hvor langt unna kameraets start (0) dette segmentet er.
-    // zOffset er negativ, så vi tar absoluttverdien.
-    const depthIndexForWidth = Math.floor(Math.abs(zOffset / segmentDepth));
-
-    // Øk bredden basert på dybdeindeksen.
-    // currentSegmentWidth er antall "celler" eller mellomrom mellom linjene.
-    // Antall langsgående linjer vil være currentSegmentWidth + 1.
-    const currentSegmentWidthCount = initialWidth + depthIndexForWidth * widthIncrement;
-    const totalWidth = currentSegmentWidthCount * lineSpacing;
-    const halfTotalWidth = totalWidth / 2;
-
-    // Langsgående linjer (langs Z-aksen)
-    for (let i = 0; i <= currentSegmentWidthCount; i++) {
-        const x = (i * lineSpacing) - halfTotalWidth;
-        const points = [];
-        points.push(new THREE.Vector3(x, 0, 0)); // Starten av segmentet
-        points.push(new THREE.Vector3(x, 0, -segmentDepth)); // Slutten av segmentet
-        const geometry = new THREE.BufferGeometry().setFromPoints(points);
-        const line = new THREE.Line(geometry, material);
-        segmentGroup.add(line);
-    }
-
-    // Tverrgående linjer (langs X-aksen)
-    // Vi trenger en tverrgående linje ved starten av dette segmentet (z=0 i segmentets lokale koordinater)
-    // og en ved slutten (z=-segmentDepth i segmentets lokale koordinater).
-    // Bredden på den tverrgående linjen ved z=-segmentDepth må matche bredden
-    // til NESTE segment ved dens start (z=0).
-
-    // Linje ved starten av segmentet (z=0 lokalt)
-    const pointsStart = [];
-    pointsStart.push(new THREE.Vector3(-halfTotalWidth, 0, 0));
-    pointsStart.push(new THREE.Vector3(halfTotalWidth, 0, 0));
-    const geometryStart = new THREE.BufferGeometry().setFromPoints(pointsStart);
-    const lineStart = new THREE.Line(geometryStart, material);
-    segmentGroup.add(lineStart);
-
-    // For linjen ved slutten av segmentet (z=-segmentDepth lokalt):
-    // Vi trenger bredden til segmentet som VILLE vært ved zOffset - segmentDepth.
-    const nextDepthIndexForWidth = depthIndexForWidth + 1;
-    const nextSegmentWidthCount = initialWidth + nextDepthIndexForWidth * widthIncrement;
-    const nextTotalWidth = nextSegmentWidthCount * lineSpacing;
-    const nextHalfTotalWidth = nextTotalWidth / 2;
-
-    const pointsEnd = [];
-    pointsEnd.push(new THREE.Vector3(-nextHalfTotalWidth, 0, -segmentDepth));
-    pointsEnd.push(new THREE.Vector3(nextHalfTotalWidth, 0, -segmentDepth));
-    const geometryEnd = new THREE.BufferGeometry().setFromPoints(pointsEnd);
-    const lineEnd = new THREE.Line(geometryEnd, material);
-    segmentGroup.add(lineEnd);
-
-    scene.add(segmentGroup);
-    gridLines.push(segmentGroup);
-}
+// Fjerner hele funksjonen createGridSegment
+// function createGridSegment(zOffset) { ... }
 
 
 function onWindowResize() {
@@ -145,53 +115,21 @@ function onWindowResize() {
 function animate() {
     requestAnimationFrame(animate);
 
-    // Landskap bevegelse
-    // cameraSpeed er nå definert globalt
-    camera.position.z -= cameraSpeed; // Endret retning
+    // Fjerner all tidligere landskapsbevegelse og logikk for å legge til/fjerne segmenter
 
-    // Sikter kameraet kontinuerlig litt fremover og nedover for dynamisk perspektiv
-    // Dette kan justeres eller fjernes hvis det gir uønsket effekt.
-    // Vi sikter mot et punkt som er litt foran og under kameraets nåværende relative posisjon.
-    // camera.lookAt(camera.position.x, camera.position.y -1, camera.position.z + segmentDepth);
-    // For en jevnere "inn i tunnelen" effekt, kan vi sikte mot et fast punkt i horisonten
-    // eller et punkt som beveger seg med landskapet.
-    // For nå, la oss beholde den initielle lookAt og se hvordan det føles med bare Z-bevegelse.
+    // Oppdater farger på rutenettet basert på sekunder
+    const now = new Date();
+    const seconds = now.getSeconds();
 
-    gridLines.forEach(segment => {
-        // Flytt segmentet tilbake relativt til kameraets nye posisjon for å skape illusjon
-        // Dette er ikke helt riktig for "uendelig" ennå.
-        // Bedre: Når et segment går bak kamera, flytt det langt frem.
-    });
-
-        // Sjekk om det første segmentet (det eldste, gridLines[0]) har passert kameraet
-        // gitt den nye bevegelsesretningen (kameraet beveger seg mot negativ Z).
-    if (gridLines.length > 0) {
-            const firstSegment = gridLines[0]; // Dette er det eldste segmentet, opprinnelig ved z=0.
-                                             // Det strekker seg fra firstSegment.position.z til firstSegment.position.z - segmentDepth.
-
-            // Kameraet beveger seg mot negativ Z. Dets posisjon camera.position.z blir mer negativ.
-            // Segmentet er "bak" kameraet (og ute av syne) når hele segmentet
-            // har en Z-verdi som er større enn kameraets posisjon + nærplan + buffer.
-            // Mer presist: når den "bakerste" kanten av segmentet (firstSegment.position.z - segmentDepth)
-            // er forbi kameraets posisjon justert for nærplanet (camera.position.z - camera.near).
-            // camera.position.z - camera.near er Z-verdien til nærplanet.
-            // Vi fjerner segmentet hvis (firstSegment.position.z - segmentDepth) > (camera.position.z - camera.near + buffer_for_segment_removal)
-            // Dette betyr at segmentets "laveste Z-punkt" er "høyere enn" kameraets "nærplan Z + buffer".
-            const segmentRearEdgeZ = firstSegment.position.z - segmentDepth;
-            const cameraEffectiveNearZ = camera.position.z - camera.near;
-            const removalBuffer = 5; // Liten buffer for å sikre at det er helt ute av syne
-
-            if (segmentRearEdgeZ > cameraEffectiveNearZ + removalBuffer) {
-            scene.remove(firstSegment); // Fjern fra scenen
-            gridLines.shift(); // Fjern fra arrayet
-
-            // Legg til et nytt segment "lengst fremme" (dvs. lengst unna kameraet i negativ Z)
-                // Denne logikken forblir den samme, da nye segmenter alltid skal legges til i den "fjerne enden".
-            const lastSegmentZ = gridLines.length > 0 ? gridLines[gridLines.length - 1].position.z : camera.position.z - segmentDepth;
-            createGridSegment(lastSegmentZ - segmentDepth);
+    for (let i = 0; i < totalSquares; i++) {
+        if (squareMeshes[i]) { // Sjekk om meshen eksisterer
+            if (i < seconds) {
+                squareMeshes[i].material.color.setHex(activeColorHex);
+            } else {
+                squareMeshes[i].material.color.setHex(gridColorHex);
+            }
         }
     }
-
 
     renderer.render(scene, camera);
 }
