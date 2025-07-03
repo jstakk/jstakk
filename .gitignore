@@ -1,0 +1,81 @@
+# .gitignore for Visual Studio
+# Build results
+[Bb]in/
+[Oo]bj/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Mono Auto Generated Files
+mono_crash.*
+
+# Windows image file caches
+Thumbs.db
+[Dd]esktop.ini
+
+# VS Code directories
+.vscode/
+
+# Visual Studio Code settings
+.vscode/*
+
+# Rider
+.idea/
+*.sln.iml
+
+# ASP.NET Scaffolding
+ScaffoldingReadMe.txt
+
+# NuGet Packages
+*.nupkg
+# The packages folder can be ignored because of Package Restore
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+!**/[Pp]ackages/repositories.config
+
+# Npm Packages
+node_modules/
+
+# Visual Studio profiler
+*.psess
+*.vsp
+*.vspx
+*.sap
+
+# Visual Studio temporary files
+*.tmp
+*.temp
+*.log
+
+# Others
+*.vspscc
+*.vssscc
+*.cache
+*.dbmdl
+*.bak
+*.backup
+*.swp
+*.swo
+*.orig
+*.rej
+*.sdf
+*.sqlite
+*.sqlite3
+*.mdf
+*.ldf
+*.ndf
+*.v12.suo
+*.v11.suo
+*.vssscc
+*.vspscc
+*.pdb
+*.cachefile
+
+# Local history for Visual Studio
+.localhistory/
+
+# Visual Studio 2017/2019 cache/options directory
+.vs/
