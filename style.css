@@ -17,18 +17,36 @@ body {
     align-items: center;
     position: relative; /* For å tillate z-index stabling */
     z-index: 1; /* Sørg for at tekstinnholdet er over kuben */
+    /* Container will now primarily be for the clock,
+       as h1 will be absolutely positioned. */
+    /* Ensure it still allows clock to be centered by body's flex properties. */
+    display: flex; /* Added to center clock if h1 is removed from flow */
+    flex-direction: column; /* Added */
+    justify-content: center; /* Added */
+    align-items: center; /* Added */
+    width: 100%; /* Allow it to span width for h1 positioning if needed */
+    height: 100%; /* Allow it to span height for clock centering */
 }
 
-h1 {
-    font-size: 5rem; /* Stor tekststørrelse */
-    font-weight: 300; /* Lett fontvekt */
-    margin-bottom: 10px; /* Add some space below h1 */
+h1 { /* "jarle" text */
+    font-size: 3.5rem; /* Reduced font size */
+    font-weight: 300;
+    color: #f0f0f0; /* Ensure color is maintained */
+    position: absolute;
+    bottom: 30px; /* Position at the bottom */
+    left: 50%;
+    transform: translateX(-50%);
+    margin: 0; /* Reset margin */
+    z-index: 2; /* Ensure it's above other elements if needed, like .container */
 }
 
-#clock {
+#clock { /* Clock text */
     font-family: 'Montserrat', sans-serif;
-    font-weight: 700; /* Bold */
-    font-size: 3rem; /* Adjust size as needed */
+    font-weight: 700;
+    font-size: 3rem;
+    color: #f0f0f0; /* Ensure color is maintained */
+    /* Will be centered by .container's parent (body) and .container's own flex settings */
+    /* No absolute positioning needed if .container is effectively the clock's centered box */
 }
 
 .cube-container {
