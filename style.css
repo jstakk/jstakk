@@ -35,6 +35,9 @@ h1 { /* "jarle" text */
     transform: translateX(-50%);
     margin: 0;
     z-index: 2;
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 10px 20px;
+    border-radius: 5px;
 }
 
 #clock { /* Clock text */
@@ -43,6 +46,9 @@ h1 { /* "jarle" text */
     font-size: 3rem;
     color: #f0f0f0; /* Startfarge, vil bli endret av JS */
     /* Sentrert av .container */
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 10px 20px;
+    border-radius: 5px;
 }
 
 /* CSS for .cube-container, .cube, .face er fjernet */
